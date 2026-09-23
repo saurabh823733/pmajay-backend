@@ -1,38 +1,88 @@
-// server.js — main entry point
-require('dotenv').config();
 const express = require('express');
-const path = require('path');
-
-const ivrRoutes = require('./src/ivr/ivrRoutes');
-const whatsappRoutes = require('./src/whatsapp/whatsappRoutes');
-const { readAll } = require('./src/db/records');
-const { buildRecommendation } = require('./src/recommendationEngine');
 
 const app = express();
+
+// Middleware to parse incoming JSON and URL-encoded form data
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Exotel posts form-encoded
+app.use(express.urlencoded({ extended: true }));
 
-app.use('/ivr', ivrRoutes);
-app.use('/whatsapp', whatsappRoutes);
+// ==========================================
+// 1. EXOTEL IVR WEBHOOK HANDLER
+// ==========================================
+// Handles both GET and POST requests sent by Exotel Passthru applet
+app.all('/ivr/webhook', (req, res) => {
+  const callData = req.method === 'POST' ? req.body : req.query;
 
-// Same recommendation engine, exposed as a plain REST API — this is what
-// the web prototype (or any future client) can call directly instead of
-// re-implementing the scoring logic client-side.
+  const callerNumber = callData.CallFrom || callData.From || callData.CustomField || 'Unknown Caller';
+  const callSid = callData.CallSid || 'N/A';
+
+  console.log('====================================');
+  console.log('📞 INCOMING EXOTEL CALL DETECTED');
+  console.log(`HTTP Method: ${req.method}`);
+  console.log(`Caller Number: ${callerNumber}`);
+  console.log(`Call SID: ${callSid}`);
+  console.log('Full Received Payload:', callData);
+  console.log('====================================');
+
+  // Return a clean 200 OK plain text response required by Exotel Passthru
+  return res.status(200).type('text/plain').send('OK');
+});
+
+// ==========================================
+// 2. WHATSAPP WEBHOOK HANDLERS
+// ==========================================
+// Verification endpoint for Meta Cloud API Webhook setup
+app.get('/whatsapp/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode && token) {
+    console.log('💬 WhatsApp Webhook Verified');
+    return res.status(200).send(challenge);
+  }
+  return res.sendStatus(403);
+});
+
+// Message listener endpoint for incoming WhatsApp messages / voice notes
+app.post('/whatsapp/webhook', (req, res) => {
+  console.log('====================================');
+  console.log('💬 INCOMING WHATSAPP MESSAGE');
+  console.log(JSON.stringify(req.body, null, 2));
+  console.log('====================================');
+
+  // Acknowledge receipt to Meta immediately
+  return res.status(200).send('EVENT_RECEIVED');
+});
+
+// ==========================================
+// 3. RECOMMENDATION ENGINE & UTILITY ROUTES
+// ==========================================
 app.post('/api/recommend', (req, res) => {
-  const { name_loc, education, family_occ, current_work, interest, mobility, emp_pref } = req.body;
+  const { name_loc, interest } = req.body;
   if (!name_loc || !interest) {
     return res.status(400).json({ error: 'name_loc and interest are required fields' });
   }
-  const recommendation = buildRecommendation({ name_loc, education, family_occ, current_work, interest, mobility, emp_pref });
-  res.json(recommendation);
+
+  // Placeholder recommendation response
+  res.json({
+    status: 'success',
+    recommendation: 'PMAJAY Skill Training & Infrastructure Support Scheme'
+  });
 });
 
-// Powers the coordinator dashboard shown in the earlier web prototype
 app.get('/api/records', (req, res) => {
-  res.json(readAll());
+  res.json({ status: 'ok', records: [] });
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`PM-AJAY Sahayak backend running on port ${PORT}`));
+// ==========================================
+// 4. SERVER INITIALIZATION
+// ==========================================
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`PM-AJAY Sahayak backend running on port ${PORT}`);
+});
