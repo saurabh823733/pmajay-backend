@@ -28,9 +28,11 @@ const { saveRecord } = require('../db/records');
 // 1 = Hindi, 2 = Marathi, 3 = English — extend as needed.
 const DTMF_LANG = { '1': 'hi-IN', '2': 'mr-IN', '3': 'en-IN' };
 
-router.post('/webhook', async (req, res) => {
+router.all('/webhook', async (req, res) => {
   try {
-    const { CallSid, CallFrom, RecordingUrl, Digits, EventType } = req.body;
+    // Read from req.body (POST) or req.query (GET)
+    const payload = req.method === 'POST' ? req.body : req.query;
+    const { CallSid, CallFrom, RecordingUrl, Digits, EventType } = payload;
     const callerId = CallSid || CallFrom || 'unknown-caller';
 
     // First hit for this call: ask for language selection
