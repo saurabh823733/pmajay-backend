@@ -1,0 +1,4 @@
+node_modules/
+.env
+src/db/records.json
+.DS_Store

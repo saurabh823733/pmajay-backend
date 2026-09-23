@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: pmajay-sahayak-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: ASR_PROVIDER
+        value: mock
+      - key: TTS_PROVIDER
+        value: mock
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: BHASHINI_API_KEY
+        sync: false
+      - key: BHASHINI_ASR_ENDPOINT
+        sync: false
+      - key: BHASHINI_TTS_ENDPOINT
+        sync: false
+      - key: GOOGLE_ASR_KEY
+        sync: false
+      - key: GOOGLE_TTS_KEY
+        sync: false
+      - key: EXOTEL_SID
+        sync: false
+      - key: EXOTEL_TOKEN
+        sync: false
+      - key: EXOTEL_APP_ID
+        sync: false
